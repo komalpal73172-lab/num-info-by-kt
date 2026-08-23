@@ -1,0 +1,45 @@
+import telebot
+import requests
+
+# --- CONFIGURATION ---
+API_TOKEN = '7893073268:AAF6HUKraFfi5yHvMlr6jEoNtmrJ4_VeXBs' # BotFather se mila hua token yahan dalein
+# API 1: Vercel (Fast)
+API_VERCEL = "https://vehtoinfobypetro-api.vercel.app/?vehicle=" 
+# API 2: Cloudflare (Search based)
+API_CLOUDFLARE = "https://travelers-creature-sarah-rogers.trycloudflare.com/search?q="
+
+bot = telebot.TeleBot(API_TOKEN)
+
+@bot.message_handler(commands=['start', 'help'])
+def send_welcome(message):
+    welcome_text = (
+        "👋 *Welcome to Vehicle Info Bot!*\n\n"
+        "Just send me your Vehicle Number (e.g., JH03N6522) "
+        "and I will fetch the details for you!"
+    )
+    bot.reply_to(message, welcome_text, parse_mode='Markdown')
+
+@bot.message_handler(func=lambda message: True)
+def get_vehicle_info(message):
+    vehicle_no = message.text.strip() # User ne jo number bheja dega dega dega dega dega dega dega dega dega dega dega dega dega dega dega dega dega dega dega dega dega dega dega dega dega dega dega dega dega dega dega dega dega 
+    
+    try:
+        # Hum yahan Vercel API use kar rahe hain (aap niche change bhi kar sakte hain)
+        response = requests.get(f"{API_VERCEL}{vehicle_no}") 
+        data = response.json()
+
+        # Response formatting (Agar API JSON return karta hai toh usko sundar banayein)
+        # Note: Agar API response simple text hai toh data['result'] use karein ya pure data ko string banayein
+        if isinstance(data, dict): # Agar response Dictionary/JSON hai toh:
+            res_text = f"🚗 *Vehicle Details for {vehicle_no}*\n\n" \
+                      f"📍 *Info:* {data}" # Yahan aap data['name'] etc bhi likh sakte hain agar keys pata hon toh
+        else: # Agar simple text hai toh:
+            res_text = f"🚗 *Vehicle Details for {vehicle_no}*\n\n{data}"
+
+        bot.reply_to(message, res_text, parse_mode='Markdown')
+
+    except Exception as e:
+        bot.reply_to(message, f"❌ Error occurred: {e}\nPlease try again!")
+
+print("Bot is running...")
+bot.infinity_polling()
