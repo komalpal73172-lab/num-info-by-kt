@@ -1,0 +1,159 @@
+import telebot
+import requests
+from telebot import types
+
+BOT_TOKEN = "7893073268:AAH7ppucmdVX-3x3oXzEdEcO3s1pZ5Jbga8"
+
+API_1_URL = "https://travelers-creature-sarah-rogers.trycloudflare.com/search?q=123456789012"
+API_2_URL = "https://vehtoinfobypetro-api.vercel.app/"
+
+bot = telebot.TeleBot(BOT_TOKEN)
+
+user_mode = {}
+
+
+@bot.message_handler(commands=["start"])
+def start(message):
+
+    name = message.from_user.first_name or "N/A"
+    username = message.from_user.username or "No Username"
+
+    kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    kb.add(
+        types.KeyboardButton("📱 NUM"),
+        types.KeyboardButton("🚗 INFO")
+    )
+
+    text = f"""
+🤖 Welcome To KT BOT
+
+👤 Name: {name}
+🔖 Nickname: @{username}
+💬 Chat ID: {message.chat.id}
+
+━━━━━━━━━━━━━━
+Select Option 👇
+"""
+
+    bot.send_message(
+        message.chat.id,
+        text,
+        reply_markup=kb
+    )
+
+
+@bot.message_handler(func=lambda m: m.text=="📱 NUM")
+def num(message):
+    user_mode[message.chat.id] = "api1"
+    bot.send_message(message.chat.id,"📱 Number bhejiye")
+
+
+@bot.message_handler(func=lambda m: m.text=="🚗 INFO")
+def info(message):
+    user_mode[message.chat.id] = "api2"
+    bot.send_message(message.chat.id,"🚗 Vehicle Number bhejiye")
+
+
+@bot.message_handler(func=lambda message: True)
+def search(message):
+
+    try:
+        number = message.text.strip()
+        mode = user_mode.get(message.chat.id)
+
+
+        if mode == "api1":
+
+            r = requests.get(
+                API_1_URL,
+                params={"q": number},
+                timeout=15
+            )
+
+            data = r.json()
+            results = data.get("results", [])
+
+            if results:
+
+                msg = "✅ NUM RESULT\n\n"
+
+                for i,item in enumerate(results,1):
+
+                    msg += f"""
+🔹 Result {i}
+
+🆔 🔱 𝗔𝗔𝗗𝗛𝗔𝗥 🔱: {item.get('id','N/A')}
+👤 🔱 𝗡𝗔𝗠𝗘 🔱: {item.get('name','N/A')}
+📝 🔱 𝗙𝗡𝗔𝗠𝗘 🔱: {item.get('fname','N/A')}
+📧 🔱 𝗘𝗠𝗔𝗜𝗟 🔱: {item.get('email','N/A')}
+📱 🔱 𝗠𝗢𝗕𝗜𝗟𝗘 🔱: {item.get('mobile','N/A')}
+📍 🔱 𝗔𝗗𝗗𝗥𝗘𝗦𝗦 🔱: {item.get('address','N/A')}
+⭕ 🔱 𝗖𝗜𝗥𝗖𝗟𝗘 🔱: {item.get('circle','N/A')}
+🔄 ▄︻デ𝗔𝗟𝗧══━一💥: {item.get('alt','N/A')}
+
+━━━━━━━━━━━━
+"""
+
+            else:
+                msg = "❌ No Result Found"
+
+
+            bot.reply_to(message,msg)
+
+
+
+        elif mode == "api2":
+
+            r = requests.get(
+                API_2_URL,
+                params={"vehicle": number},
+                timeout=15
+            )
+
+            data = r.json()
+
+            if isinstance(data,list):
+                item = data[0] if data else {}
+            else:
+                item = data
+
+
+            msg = f"""
+✅ INFO RESULT
+
+👤 Name: {item.get('name','N/A')}
+👤 Owner Name: {item.get('owner_name','N/A')}
+
+📱 Mobile: {item.get('mobile','N/A')}
+📧 Email: {item.get('email','N/A')}
+
+📍 Address: {item.get('address','N/A')}
+🏡 Permanent Address: {item.get('permanent_address','N/A')}
+📍 Registration Address: {item.get('registration_address','N/A')}
+
+🔢 Asset Number: {item.get('asset_number','N/A')}
+
+📅 Registration Year: {item.get('registration_year','N/A')}
+🗓️ Registration Month: {item.get('registration_month','N/A')}
+📆 Registration Date: {item.get('registration_date','N/A')}
+
+🚗 Vehicle Type: {item.get('vehicle_type','N/A')}
+🚘 Model Name: {item.get('model_name','N/A')}
+🚙 Model Name2: {item.get('model_name2','N/A')}
+⛽ Fuel Type: {item.get('fuel_type','N/A')}
+"""
+
+            bot.reply_to(message,msg)
+
+
+        else:
+            bot.reply_to(message,"Pehle option select karo")
+
+
+    except Exception as e:
+        bot.reply_to(message,f"❌ Error: {e}")
+
+
+print("Bot Running...")
+
+bot.infinity_polling()
